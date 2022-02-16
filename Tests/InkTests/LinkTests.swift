@@ -69,6 +69,22 @@ final class LinkTests: XCTestCase {
         let html = MarkdownParser().html(from: "[\\[Hello\\]](hello)")
         XCTAssertEqual(html, #"<p><a href="hello">[Hello]</a></p>"#)
     }
+    
+    func testWikilinks() {
+        let internalLinks = ["readme": "README.html", "selfie": "images/selfie.png"] // Keys must be lowercase to match dictionary entries
+        // N.B. the Markdown below intentionally includes wikilink-style text that isn't satisfied by internalLinks.
+        var parser = MarkdownParser()
+        parser.siteURLs = internalLinks
+        let markdown = """
+        [Apple](http://www.apple.com)
+        [[README]]
+        [[README|Read me]]
+        [[LICENSE]]
+        ![selfie](selfie.png)
+        """
+        let html = parser.html(from: markdown)
+        XCTAssertEqual(html, #"<p><a href="http://www.apple.com">Apple</a> <a href="README.html">README</a> <a href="README.html">Read me</a> <span class="missing">LICENSE</span> <img src="images/selfie.png" alt="selfie"/></p>"#)
+    }
 }
 
 extension LinkTests {
@@ -82,7 +98,8 @@ extension LinkTests {
             ("testBoldLinkWithExternalMarkers", testBoldLinkWithExternalMarkers),
             ("testLinkWithUnderscores", testLinkWithUnderscores),
             ("testUnterminatedLink", testUnterminatedLink),
-            ("testLinkWithEscapedSquareBrackets", testLinkWithEscapedSquareBrackets)
+            ("testLinkWithEscapedSquareBrackets", testLinkWithEscapedSquareBrackets),
+            ("testWikilinks", testWikilinks)
         ]
     }
 }

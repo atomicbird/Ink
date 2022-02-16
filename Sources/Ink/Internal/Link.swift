@@ -50,7 +50,7 @@ internal struct Link: Fragment {
 
     func html(usingURLs urls: NamedURLCollection,
               modifiers: ModifierCollection) -> String {
-        let url = target.url(from: urls)
+        let url = url(from: urls)
         let title = text.html(usingURLs: urls, modifiers: modifiers)
         guard !url.isEmpty else {
             // If a wikilink doesn't have a corresponding internal site page, mark it as missing but don't create a link.
@@ -70,18 +70,15 @@ extension Link {
         case reference(Substring)
         case internalSite(String)
     }
-}
-
-extension Link.Target {
+    
     func url(from urls: NamedURLCollection) -> String {
-        switch self {
+        switch target {
         case .url(let url):
-            return url
+            return urls.url(named: Substring(text.plainText())) ?? url
         case .reference(let name):
             return urls.url(named: name) ?? String(name)
         case .internalSite(let urlLabel):
             return urls.url(named: Substring(urlLabel)) ?? "" // ?? String(urlLabel)
         }
-        
     }
 }
