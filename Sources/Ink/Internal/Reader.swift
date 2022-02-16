@@ -27,12 +27,14 @@ extension Reader {
         return string[range]
     }
 
-    mutating func read(_ character: Character) throws {
-        guard !didReachEnd else { throw Error() }
-        guard currentCharacter == character else { throw Error() }
-        advanceIndex()
+    mutating func read(_ string: String) throws {
+        try string.forEach { character in
+            guard !didReachEnd else { throw Error() }
+            guard currentCharacter == character else { throw Error() }
+            advanceIndex()
+        }
     }
-
+    
     @discardableResult
     mutating func read(until character: Character,
                        required: Bool = true,

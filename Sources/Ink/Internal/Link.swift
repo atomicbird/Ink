@@ -12,15 +12,35 @@ internal struct Link: Fragment {
 
     static func read(using reader: inout Reader) throws -> Link {
         try reader.read("[")
-        let text = FormattedText.read(using: &reader, terminators: ["]"])
-        try reader.read("]")
+        let text: FormattedText
+        var wikilink: FormattedText //? = nil
+        if reader.currentCharacter == "[" {
+            reader.advanceIndex()
+            // Read up to a | or a ] for the link destination
+            let wikilinkDestination = FormattedText.read(using: &reader, terminators: ["|", "]"])
+            if reader.currentCharacter == "|" {
+                reader.advanceIndex()
+                // Link destination and label are different
+                text = FormattedText.read(using: &reader, terminators: ["]"])
+                wikilink = wikilinkDestination
+            } else {
+                // Link destination and label are the same
+                text = wikilinkDestination
+                wikilink = text
+            }
+            try reader.read("]]")
+            return Link(target: .internalSite(wikilink.plainText()), text: text)
+        } else {
+            text = FormattedText.read(using: &reader, terminators: ["]"])
+            try reader.read("]")
+        }
 
         guard !reader.didReachEnd else { throw Reader.Error() }
 
         if reader.currentCharacter == "(" {
             reader.advanceIndex()
             let url = try reader.read(until: ")")
-            return Link(target: .url(url), text: text)
+            return Link(target: .url(String(url)), text: text)
         } else {
             try reader.read("[")
             let reference = try reader.read(until: "]")
@@ -32,6 +52,10 @@ internal struct Link: Fragment {
               modifiers: ModifierCollection) -> String {
         let url = target.url(from: urls)
         let title = text.html(usingURLs: urls, modifiers: modifiers)
+        guard !url.isEmpty else {
+            // If a wikilink doesn't have a corresponding internal site page, mark it as missing but don't create a link.
+            return "<span class=\"missing\">\(title)</span>"
+        }
         return "<a href=\"\(url)\">\(title)</a>"
     }
 
@@ -42,18 +66,22 @@ internal struct Link: Fragment {
 
 extension Link {
     enum Target {
-        case url(URL)
+        case url(String)
         case reference(Substring)
+        case internalSite(String)
     }
 }
 
 extension Link.Target {
-    func url(from urls: NamedURLCollection) -> URL {
+    func url(from urls: NamedURLCollection) -> String {
         switch self {
         case .url(let url):
             return url
         case .reference(let name):
-            return urls.url(named: name) ?? name
+            return urls.url(named: name) ?? String(name)
+        case .internalSite(let urlLabel):
+            return urls.url(named: Substring(urlLabel)) ?? "" // ?? String(urlLabel)
         }
+        
     }
 }

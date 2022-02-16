@@ -36,13 +36,15 @@ public struct MarkdownParser {
         parse(markdown).html
     }
 
+    public var siteURLs: [String : String]?
+    
     /// Parse a Markdown string into a `Markdown` value, which contains
     /// both the HTML representation of the given string, and also any
     /// metadata values found within it.
     public func parse(_ markdown: String) -> Markdown {
         var reader = Reader(string: markdown)
         var fragments = [ParsedFragment]()
-        var urlsByName = [String : URL]()
+        var urlsByName = siteURLs ?? [String : String]()
         var titleHeading: Heading?
         var metadata: Metadata?
 
